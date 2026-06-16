@@ -2191,9 +2191,11 @@ def _blackwell_capable_linux_runtime_lines(
         if artifact.min_sm is None or artifact.max_sm is None:
             continue
         supported = {str(value) for value in artifact.supported_sms}
-        if all(sm in supported and artifact.min_sm <= int(sm) <= artifact.max_sm for sm in host_sms):
+        if all(
+            sm in supported and artifact.min_sm <= int(sm) <= artifact.max_sm for sm in host_sms
+        ):
             lines.add(artifact.runtime_line)
-    return sorted(lines, key = lambda line: int(line[len("cuda"):]), reverse = True)
+    return sorted(lines, key = lambda line: int(line[len("cuda") :]), reverse = True)
 
 
 def linux_cuda_choice_from_release(
