@@ -4727,7 +4727,6 @@ class LlamaCppBackend:
                 # Poll llama-server /metrics -> vLLM-style engine_stats logs.
                 try:
                     from core.inference.llama_stats import maybe_start_stats_logger
-
                     if self._stats_logger is not None:
                         self._stats_logger.stop()
                     self._stats_logger = maybe_start_stats_logger(self.base_url, logger)

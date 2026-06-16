@@ -26,7 +26,12 @@ class LlamaServerStatsLogger:
     Self-terminating: stops after repeated scrape failures (server gone).
     """
 
-    def __init__(self, base_url, logger, interval_s=10.0):
+    def __init__(
+        self,
+        base_url,
+        logger,
+        interval_s = 10.0,
+    ):
         self._url = f"{base_url.rstrip('/')}/metrics"
         self._log = logger
         self._interval = max(1.0, float(interval_s))
@@ -35,7 +40,7 @@ class LlamaServerStatsLogger:
 
     def start(self):
         if self._thread is None:
-            self._thread = threading.Thread(target=self._run, name="llama-stats", daemon=True)
+            self._thread = threading.Thread(target = self._run, name = "llama-stats", daemon = True)
             self._thread.start()
 
     def stop(self):
@@ -43,7 +48,7 @@ class LlamaServerStatsLogger:
 
     def _scrape(self):
         try:
-            with urllib.request.urlopen(self._url, timeout=3) as r:
+            with urllib.request.urlopen(self._url, timeout = 3) as r:
                 if r.status != 200:
                     return None
                 body = r.read().decode("utf-8", "replace")
@@ -64,22 +69,29 @@ class LlamaServerStatsLogger:
             misses = 0
             # tokens_predicted_total only commits at request end; n_decode_total
             # increments live, so derive throughput from its delta over the tick.
-            now, decoded, prompt = time.monotonic(), m.get("n_decode_total", 0.0), m.get("prompt_tokens_total", 0.0)
+            now, decoded, prompt = (
+                time.monotonic(),
+                m.get("n_decode_total", 0.0),
+                m.get("prompt_tokens_total", 0.0),
+            )
             gen_tps = prompt_tps = 0.0
             if prev is not None and now > prev[0]:
                 dt = now - prev[0]
                 gen_tps = max(0.0, (decoded - prev[1]) / dt)
                 prompt_tps = max(0.0, (prompt - prev[2]) / dt)
             prev = (now, decoded, prompt)
-            running, waiting = int(m.get("requests_processing", 0)), int(m.get("requests_deferred", 0))
+            running, waiting = (
+                int(m.get("requests_processing", 0)),
+                int(m.get("requests_deferred", 0)),
+            )
             if running or waiting or gen_tps or prompt_tps:  # skip idle ticks
                 self._log.info(
                     "engine_stats",
-                    gen_tok_s=round(gen_tps, 1),
-                    prompt_tok_s=round(prompt_tps, 1),
-                    running=running,
-                    waiting=waiting,
-                    kv_cache_pct=round(m.get("kv_cache_usage_ratio", 0.0) * 100, 1),
+                    gen_tok_s = round(gen_tps, 1),
+                    prompt_tok_s = round(prompt_tps, 1),
+                    running = running,
+                    waiting = waiting,
+                    kv_cache_pct = round(m.get("kv_cache_usage_ratio", 0.0) * 100, 1),
                 )
 
 

@@ -158,7 +158,7 @@ def test_mutations_and_errors_are_never_deduped(logs, monkeypatch):
 
     mw = LoggingMiddleware(post_ok)
     for _ in range(2):
-        _run(mw(_http_scope("/api/chat/threads", method="POST"), _noop_receive, send))
+        _run(mw(_http_scope("/api/chat/threads", method = "POST"), _noop_receive, send))
     mw_404 = LoggingMiddleware(get_404)
     for _ in range(2):
         _run(mw_404(_http_scope("/api/models"), _noop_receive, send))
