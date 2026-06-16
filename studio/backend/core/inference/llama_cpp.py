@@ -923,6 +923,7 @@ class LlamaCppBackend:
         self._is_diffusion: bool = False
         self._diffusion_visual_bin: Optional[str] = None
         self._healthy = False
+        self._stats_logger = None  # vLLM-style engine-stats poller, set on load
         # Set by _classify_gpu_offload after _wait_for_health.
         self._gpu_offload_active: Optional[bool] = None
         self._context_length: Optional[int] = None
@@ -4203,6 +4204,8 @@ class LlamaCppBackend:
                     "on",  # Force flash attention for speed
                     # Error out at n_ctx instead of silently rotating the KV cache; frontend catches it and points the user at "Context Length".
                     "--no-context-shift",
+                    # Expose Prometheus /metrics for the engine-stats logger.
+                    "--metrics",
                 ]
 
                 fully_gpu_offloaded = False
@@ -4721,6 +4724,15 @@ class LlamaCppBackend:
                 logger.info(
                     f"llama-server ready on port {self._port} for model '{model_identifier}'"
                 )
+                # Poll llama-server /metrics -> vLLM-style engine_stats logs.
+                try:
+                    from core.inference.llama_stats import maybe_start_stats_logger
+
+                    if self._stats_logger is not None:
+                        self._stats_logger.stop()
+                    self._stats_logger = maybe_start_stats_logger(self.base_url, logger)
+                except Exception as e:
+                    logger.debug(f"engine-stats logger not started: {e}")
 
             # Probe outside _lock (interruptible by /unload); init inside.
             self._is_audio = False
@@ -5221,6 +5233,9 @@ class LlamaCppBackend:
         except Exception as e:
             logger.warning(f"Error killing llama-server process: {e}")
         finally:
+            if self._stats_logger is not None:
+                self._stats_logger.stop()
+                self._stats_logger = None
             self._process = None
             # Clear healthy so a /load during the replacement's warm-up can't
             # short-circuit against the previous server's health (#5401).

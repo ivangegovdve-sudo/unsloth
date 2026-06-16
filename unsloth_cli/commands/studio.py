@@ -668,6 +668,13 @@ def studio_default(
         "if the tunnel can't start. Without it, --not-secure also serves the raw "
         "0.0.0.0 port, which is reachable from anywhere on the network.",
     ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        "-v",
+        help = "Log every API request, including the high-frequency polling that is "
+        "deduplicated by default.",
+    ),
 ):
     """Launch the Unsloth Studio server."""
     # Runs before every subcommand (run/setup/update/...).
@@ -717,6 +724,11 @@ def studio_default(
             )
             raise typer.Exit(2)
         host = "127.0.0.1"
+
+    # --verbose restores the per-request access logs that are deduplicated by
+    # default; inherited by the spawned server via the environment.
+    if verbose:
+        os.environ["UNSLOTH_STUDIO_ACCESS_LOG_DEDUP_MS"] = "0"
 
     # Use the studio venv if it exists and we aren't already in it.
     studio_venv_dir = STUDIO_HOME / "unsloth_studio"
